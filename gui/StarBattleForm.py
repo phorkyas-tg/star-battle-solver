@@ -8,6 +8,9 @@ from solver.StarBattleSolver import StarBattleSolver, StarBattleGridCodes
 
 class StarBattleForm(wx.Frame):
     def __init__(self, dimension=9):
+        self.solver = None
+        self.dimension = dimension
+
         wx.Frame.__init__(self, parent=None, title="Star Battle Solver", size=(800, 600))
 
         self.panel = wx.Panel(self)
@@ -92,6 +95,7 @@ class StarBattleForm(wx.Frame):
                                           "Invalid File: {0}".format(returnCode.name))
                         return
                     self.sbGrid.SetData(gridData)
+                    self.solver = StarBattleSolver(gridData, self.dimension)
             except IOError:
                 self.ConsolePrint("ERROR", "Can't open json: {0}".format(pathname))
             self.ConsolePrint("INFO", "Opened json: {0}".format(pathname))
