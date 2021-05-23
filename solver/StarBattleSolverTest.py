@@ -106,34 +106,3 @@ class StarBattleSolverTest(unittest.TestCase):
         self.assertTrue(StarBattleSolver.IsAdjacent(pos1, pos3, checkDiagonal=False))
         self.assertFalse(StarBattleSolver.IsAdjacent(pos1, pos4, checkDiagonal=False))
         self.assertFalse(StarBattleSolver.IsAdjacent(pos1, pos5, checkDiagonal=False))
-
-    def testNextEasyLevel(self):
-        easyLevel = self.GetEasyLevel()
-        solver = StarBattleSolver(easyLevel, 9, 2, True)
-        command = solver.NextSolution()
-        self.assertEqual(str(command),
-                         "stars: [(2, 8), (4, 8)] | "
-                         "noStars [(1, 7), (1, 8), (2, 7), (3, 7), (3, 8), (4, 7), (5, 7), (5, 8)]")
-        solver.Commit(command)
-
-        command = solver.NextSolution()
-        self.assertEqual(str(command),
-                         "stars: [(2, 8), (4, 8)] | "
-                         "noStars [(0, 8), (6, 8), (7, 8), (8, 8)]")
-        solver.Commit(command)
-
-        command = solver.NextSolution()
-        self.assertEqual(str(command),
-                         "stars: [(6, 7), (8, 7)] | "
-                         "noStars [(5, 6), (5, 7), (5, 8), (6, 6), (6, 8), (7, 6), "
-                         "(7, 7), (7, 8), (8, 6), (8, 8)]")
-        solver.Commit(command)
-
-        command = solver.NextSolution()
-        self.assertEqual(str(command),
-                         "stars: [(6, 7), (8, 7)] | "
-                         "noStars [(0, 7)]")
-        solver.Commit(command)
-
-        command = solver.NextSolution()
-        print(str(command))

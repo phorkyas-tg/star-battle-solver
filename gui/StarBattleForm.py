@@ -24,7 +24,9 @@ class StarBattleForm(wx.Frame):
         self.loadBtn.Bind(wx.EVT_BUTTON, self.OnLoadBtnClicked)
 
         self.stepBtn = wx.Button(self.panel, -1, "STEP")
+        self.stepBtn.Bind(wx.EVT_BUTTON, self.OnStepBtnClicked)
         self.solveBtn = wx.Button(self.panel, -1, "SOLVE")
+        self.solveBtn.Bind(wx.EVT_BUTTON, self.OnSolveBtnClicked)
         self.cmdArea = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE | wx.TE_READONLY,
                                    size=wx.Size(dimension * 50, 150))
 
@@ -76,6 +78,7 @@ class StarBattleForm(wx.Frame):
             except IOError:
                 self.ConsolePrint("ERROR", "Can't save json to path: {0}".format(pathname))
         self.ConsolePrint("INFO", "Saved json to path: {0}".format(pathname))
+        self.solver = StarBattleSolver(gridData, self.dimension)
 
     def OnLoadBtnClicked(self, evt):
         with wx.FileDialog(self, "Open JSON file", wildcard="JSON files (*.json)|*.json",
@@ -99,3 +102,27 @@ class StarBattleForm(wx.Frame):
             except IOError:
                 self.ConsolePrint("ERROR", "Can't open json: {0}".format(pathname))
             self.ConsolePrint("INFO", "Opened json: {0}".format(pathname))
+
+    def Next(self):
+        command = self.solver.NextSolution()
+        if command is None:
+            return False
+        self.solver.Commit(command)
+        self.sbGrid.Draw(command)
+        self.ConsolePrint("STEP", str(command))
+
+        solved, broken = self.solver.GetStatus()
+        if solved:
+            self.ConsolePrint("INFO", "Grid is solved!")
+        if broken:
+            self.ConsolePrint("ERROR", "Grid is broken!")
+
+        return True
+
+    def OnStepBtnClicked(self, evt):
+        if not self.Next():
+            self.ConsolePrint("INFO", "No solution found")
+
+    def OnSolveBtnClicked(self, evt):
+        while self.Next():
+            pass

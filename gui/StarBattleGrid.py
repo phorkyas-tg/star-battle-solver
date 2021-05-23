@@ -2,6 +2,8 @@ import wx
 import wx.grid as gridlib
 import random
 
+from solver.StarBattleSolver import StarBattleCommand
+
 
 class StarBattleGrid(gridlib.Grid):
     def __init__(self, parent, dimension):
@@ -51,14 +53,35 @@ class StarBattleGrid(gridlib.Grid):
 
         evt.Skip()
 
-    def SetCell(self, key, r, c):
+    def SetCell(self, key, r, c, setColor=True, font=None):
         self.SetCellValue(r, c, key)
         self.SetCellAlignment(r, c, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
-        random.seed(hash(key))
-        color = wx.Colour(random.randint(0, 255),
-                          random.randint(0, 255),
-                          random.randint(0, 255))
-        self.SetCellBackgroundColour(r, c, color)
+        if setColor:
+            random.seed(hash(key))
+            color = wx.Colour(random.randint(0, 255),
+                              random.randint(0, 255),
+                              random.randint(0, 255))
+            self.SetCellBackgroundColour(r, c, color)
+        if font:
+            self.SetCellFont(r, c, font)
+        else:
+            self.SetCellFont(r, c, wx.Font(10, wx.SWISS, wx.NORMAL, wx.NORMAL))
+
+    def Draw(self, command: StarBattleCommand):
+        for star in command.GetStars():
+            self.SetCell("x", star[0], star[1], False,
+                         wx.Font(30, wx.SWISS, wx.NORMAL, wx.BOLD))
+        for noStar in command.GetNoStars():
+            self.SetCell("o", noStar[0], noStar[1], False,
+                         wx.Font(30, wx.SWISS, wx.NORMAL, wx.BOLD))
+        for double in command.GetDoubles():
+            for pos in double:
+                self.SetCell("d", pos[0], pos[1], False,
+                             wx.Font(30, wx.SWISS, wx.NORMAL, wx.BOLD))
+        for triple in command.GetTriples():
+            for pos in triple:
+                self.SetCell("t", pos[0], pos[1], False,
+                             wx.Font(30, wx.SWISS, wx.NORMAL, wx.BOLD))
 
     def GetData(self):
         valDict = {}
