@@ -64,6 +64,18 @@ class StarBattleSolver:
         return False
 
     @staticmethod
+    def GetAdjacentPositions(pos: tuple, dimension: int):
+        adjacentPositions = []
+        for x in [-1, 0, 1]:
+            for y in [-1, 0, 1]:
+                if x == 0 and y == 0:
+                    continue
+                newPos = (pos[0] + x, pos[1] + y)
+                if StarBattleSolver.IsInGrid(newPos, dimension):
+                    adjacentPositions.append(newPos)
+        return adjacentPositions
+
+    @staticmethod
     def CopyBoard(board, doubles, triples, dimension):
         newBoard = []
         newDoubles = copy.deepcopy(doubles)
@@ -105,17 +117,6 @@ class StarBattleSolver:
             for c in range(self._dimension):
                 row.append(StarBattleTile())
             self._board.append(row)
-
-    def GetAdjacentPositions(self, pos: tuple):
-        adjacentPositions = []
-        for x in [-1, 0, 1]:
-            for y in [-1, 0, 1]:
-                if x == 0 and y == 0:
-                    continue
-                newPos = (pos[0] + x, pos[1] + y)
-                if self.IsInGrid(newPos, self._dimension):
-                    adjacentPositions.append(newPos)
-        return adjacentPositions
 
     def GetStatus(self):
         solved = True
@@ -268,7 +269,7 @@ class StarBattleSolver:
             isBroken = False
             newStar = [pos]
             newNoStars = []
-            for noStar in self.GetAdjacentPositions(pos):
+            for noStar in self.GetAdjacentPositions(pos, self._dimension):
                 if self._board[noStar[0]][noStar[1]].Status() != StarBattleTileStates.NO_STAR:
                     newNoStars.append(noStar)
 
@@ -489,7 +490,7 @@ class StarBattleSolver:
 
             # get all the known noStars and add the new ones from the new star
             newNoStars = noStars.copy()
-            for noStar in self.GetAdjacentPositions(pos):
+            for noStar in self.GetAdjacentPositions(pos, self._dimension):
                 if noStar not in newNoStars and \
                         self._board[noStar[0]][noStar[1]].Status() != StarBattleTileStates.NO_STAR:
                     newNoStars.append(noStar)
