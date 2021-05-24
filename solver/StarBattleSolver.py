@@ -12,7 +12,21 @@ class StarBattleSolverError(Exception):
 class StarBattleSolver:
 
     @staticmethod
-    def IsValidStarBattleGrid(battleSolverGrid: dict, dimension: int = 9, stars: int = 2):
+    def IsValidStarBattleGrid(battleSolverGrid, dimension=9, stars=2):
+        """
+        Checks if the given grid is a valid star battle grid. It checks the cell count,
+        dimensions, area count, area size, duplicates or disconnected tiles. It does not check if
+        the grid is actually solvable. As a result the function returns a code.
+
+        :param battleSolverGrid: areas (key) with their tile positions list(tuple(int, int))
+        :type battleSolverGrid: dict
+        :param dimension: dimension of the grid
+        :type dimension: int
+        :param stars: number of stars per row/columns/area
+        :type stars: int
+        :return: grid code
+        :rtype: StarBattleGridCodes
+        """
         if sum([len(c) for c in battleSolverGrid.values()]) != dimension * dimension:
             return StarBattleGridCodes.INVALID_CELL_COUNT
 
@@ -44,11 +58,33 @@ class StarBattleSolver:
         return StarBattleGridCodes.OK
 
     @staticmethod
-    def IsInGrid(pos: tuple, dimension: int = 9):
+    def IsInGrid(pos, dimension=9):
+        """
+        Checks if the given position is in the grid
+
+        :param pos: position
+        :type pos: tuple(int, int)
+        :param dimension: dimension of the grid
+        :type dimension: int
+        :return: True if position is in grid else False
+        :rtype: bool
+        """
         return (0 <= pos[0] <= dimension - 1) and (0 <= pos[1] <= dimension - 1)
 
     @staticmethod
-    def IsAdjacent(pos1: tuple, pos2: tuple, checkDiagonal: bool = False):
+    def IsAdjacent(pos1, pos2, checkDiagonal=False):
+        """
+        Checks if the two given positions are adjaced to one another
+
+        :param pos1: first position
+        :type pos1: tuple(int, int)
+        :param pos2: second position
+        :type pos2: tuple(int, int)
+        :param checkDiagonal: If True also check the diagonal position
+        :type checkDiagonal: bool
+        :return:
+        :rtype: bool
+        """
         deltaX = abs(pos1[0] - pos2[0])
         deltaY = abs(pos1[1] - pos2[1])
 
@@ -64,7 +100,18 @@ class StarBattleSolver:
         return False
 
     @staticmethod
-    def GetAdjacentPositions(pos: tuple, dimension: int):
+    def GetAdjacentPositions(pos, dimension):
+        """
+        Get a list of all 9 adjacent positions of the given postion. Remove any positions that are
+        not in the grid.
+
+        :param pos: position
+        :type pos: tuple(int, int)
+        :param dimension: dimension of the grid
+        :type dimension: int
+        :return: list of adjacent positions
+        :rtype: list(tuple(int, int))
+        """
         adjacentPositions = []
         for x in [-1, 0, 1]:
             for y in [-1, 0, 1]:
@@ -77,6 +124,21 @@ class StarBattleSolver:
 
     @staticmethod
     def CopyBoard(board, doubles, triples, dimension):
+        """
+        Make a deep copy of the board, doubles and triples.
+
+        :param board: board matrix
+        :type board: list(list(StarBattleTile))
+        :param doubles: list of double
+        :type doubles: list(list(tuple(int, int)))
+        :param triples: list of triples
+        :type triples: list(list(tuple(int, int)))
+        :param dimension: dimension of the grid
+        :type dimension: int
+        :return:
+        :rtype: list(list(StarBattleTile)), list(list(tuple(int, int))), list(list(tuple(int, int)))
+        """
+
         newBoard = []
         newDoubles = copy.deepcopy(doubles)
         newTriples = copy.deepcopy(triples)
@@ -98,7 +160,20 @@ class StarBattleSolver:
 
         return newBoard, newDoubles, newTriples
 
-    def __init__(self, boardData, dimension, stars=2, validateData=True):
+    def __init__(self, boardData, dimension=9, stars=2, validateData=True):
+        """
+        Init the solver
+
+        :param boardData: areas (key) with their tile positions list(tuple(int, int))
+        :type boardData: dict
+        :param dimension: dimension of the grid
+        :type dimension: int
+        :param stars: number of stars per row/columns/area
+        :type stars: int
+        :param validateData: If True validate grid and raise an StarBattleSolverError if there
+        is a problem
+        :type validateData: bool
+        """
         returnCode = StarBattleSolver.IsValidStarBattleGrid(boardData, dimension, stars)
         if validateData and returnCode != StarBattleGridCodes.OK:
             raise StarBattleSolverError("Invalid BattleSolver grid: {0}".format(returnCode.name))
@@ -119,6 +194,13 @@ class StarBattleSolver:
             self._board.append(row)
 
     def GetStatus(self):
+        """
+        Get the current status of the board. The first return value tells if the board is already
+        solved. The other if it is broken.
+
+        :return: solved, broken
+        :rtype: bool, bool
+        """
         solved = True
         broken = False
 
@@ -152,7 +234,63 @@ class StarBattleSolver:
 
         return solved, broken
 
-    def Commit(self, command: StarBattleCommand, silent=False):
+    def GetRow(self, r, flt):
+        """
+        Get specific row from board
+
+        :param r: index
+        :type r: int
+        :param flt: tile filter
+        :type flt: list(StarBattleTileStates)
+        :return: list of positions
+        :rtype: list(tuple(int, int))
+        """
+        return [(r, i) for i, tile in enumerate(self._board[r]) if tile.Status() in flt]
+
+    def GetColumn(self, c, flt):
+        """
+        Get specific colum from board
+
+        :param c: index
+        :type c: int
+        :param flt: tile filter
+        :type flt: list(StarBattleTileStates)
+        :return: list of positions
+        :rtype: list(tuple(int, int))
+        """
+        column = []
+        for r in range(self._dimension):
+            if self._board[r][c].Status() in flt:
+                column.append((r, c))
+        return column
+
+    def GetArea(self, key, flt):
+        """
+        Get specific area from board
+
+        :param key: key
+        :type key: str
+        :param flt: tile filter
+        :type flt: list(StarBattleTileStates)
+        :return: list of positions
+        :rtype: list(tuple(int, int))
+        """
+        area = []
+        for pos in self._boardData[key]:
+            if self._board[pos[0]][pos[1]].Status() in flt:
+                area.append((pos[0], pos[1]))
+        return area
+
+    def Commit(self, command, silent=False):
+        """
+        Setting the board to the tile states of all given positions. Get rid of broken doubles and
+        triples. Add the command to the command list.
+
+        :param command: Command with all positions and tile states
+        :type command: StarBattleCommand
+        :param silent: If True the command does not appear in the command list
+        :type silent: bool
+        """
         if not silent:
             self._commands.append(command)
 
@@ -164,59 +302,31 @@ class StarBattleSolver:
             self._board[noStar[0]][noStar[1]].SetStatus(StarBattleTileStates.NO_STAR)
             newPositions.append(noStar)
 
+        # Get rid of broken doubles and triples
         unnecessaryDoubles = []
+        unnecessaryTriples = []
         for newPosition in newPositions:
             for double in self._doubles:
                 if newPosition in double and double not in unnecessaryDoubles:
                     unnecessaryDoubles.append(double)
-        for ud in unnecessaryDoubles:
-            self._doubles.remove(ud)
-
-        unnecessaryTriples = []
-        for newPosition in newPositions:
             for triple in self._triples:
                 if newPosition in triple and triple not in unnecessaryTriples:
                     unnecessaryTriples.append(triple)
+        for ud in unnecessaryDoubles:
+            self._doubles.remove(ud)
         for ut in unnecessaryTriples:
             self._triples.remove(ut)
 
-    def GetSingleDimensionCommand(self, getter, d, commandType):
-        positions = getter(d, [StarBattleTileStates.UNKNOWN, StarBattleTileStates.STAR])
-        solutions = self.GetPossibleSolutions(positions)
-        command = self.InterpretSolutions(solutions)
-        if command:
-            command.SetType("{0}{1}".format(commandType, d))
-            return command
-        return None
-
-    def GetMultiDimensionCommand(self, getter, commandType):
-        for d1 in range(self._dimension):
-            dimSum = []
-            dimCount = 0
-            for d2 in range(d1, self._dimension):
-                dimSum.extend(getter(d2, [StarBattleTileStates.UNKNOWN,
-                                          StarBattleTileStates.STAR]))
-                dimCount += 1
-                areaCount = 0
-                dimSumTemp = dimSum.copy()
-                for key in self._boardData:
-                    area = self.GetArea(key, [StarBattleTileStates.UNKNOWN,
-                                              StarBattleTileStates.STAR])
-                    for pos in area:
-                        if pos not in dimSum:
-                            break
-                    else:
-                        areaCount += 1
-                        for pos in area:
-                            dimSumTemp.remove(pos)
-
-                if dimCount == areaCount and len(dimSumTemp) > 0:
-                    command = StarBattleCommand(noStars=dimSumTemp)
-                    command.SetType("{0}M{1}-{2}".format(commandType, d1, d2))
-                    return command
-        return None
-
     def NextSolution(self, tryPuzzleBreak=True):
+        """
+        Try to compute the next solution.
+
+        :param tryPuzzleBreak: If True try to break the puzzle via brute force if there is not
+        other way
+        :type tryPuzzleBreak: bool
+        :return: command
+        :rtype: StarBattleCommand or None
+        """
         # Check all single rows
         for d in range(self._dimension):
             command = self.GetSingleDimensionCommand(self.GetRow, d, "R")
@@ -247,18 +357,93 @@ class StarBattleSolver:
 
         # As a last resort try a field and look if something breaks
         if tryPuzzleBreak:
-            unknownPositions = []
-            for r in range(self._dimension):
-                for c in range(self._dimension):
-                    if self._board[r][c].Status() == StarBattleTileStates.UNKNOWN:
-                        unknownPositions.append((r, c))
-
             for depth in range(30):
-                command = self.TryPuzzleBreak(unknownPositions, depth)
+                command = self.TryPuzzleBreak(depth)
                 if command:
                     return command
 
-    def TryPuzzleBreak(self, unknownPositions, depth):
+    def GetSingleDimensionCommand(self, getter, d, commandType):
+        """
+        Check a single row/column/area for forced solutions. If there are any return a command
+
+        :param getter: Function to get a specific row/column/area
+        :type getter: function
+        :param d: index (for rows/columns) or key for areas
+        :type d: int or str
+        :param commandType: Set the command type (e.g. R, C, A)
+        :type commandType: str
+        :return: command
+        :rtype: StarBattleCommand or None
+        """
+        positions = getter(d, [StarBattleTileStates.UNKNOWN, StarBattleTileStates.STAR])
+        solutions = self.GetPossibleSolutions(positions)
+        command = self.InterpretSolutions(solutions)
+        if command:
+            command.SetType("{0}{1}".format(commandType, d))
+            return command
+        return None
+
+    def GetMultiDimensionCommand(self, getter, commandType):
+        """
+        Check multiple rows/columns for forced solution. If there are any return a command
+
+        :param getter: Function to get a specific row/column/area
+        :type getter: function
+        :param commandType: Set the command type (e.g. R, C, A)
+        :type commandType: str
+        :return: command
+        :rtype: StarBattleCommand or None
+        """
+        for d1 in range(self._dimension):
+            dimSum = []
+            dimCount = 0
+            for d2 in range(d1, self._dimension):
+                dimSum.extend(getter(d2, [StarBattleTileStates.UNKNOWN,
+                                          StarBattleTileStates.STAR]))
+                dimCount += 1
+                areaCount = 0
+                dimSumTemp = dimSum.copy()
+                for key in self._boardData:
+                    area = self.GetArea(key, [StarBattleTileStates.UNKNOWN,
+                                              StarBattleTileStates.STAR])
+                    for pos in area:
+                        if pos not in dimSum:
+                            break
+                    else:
+                        areaCount += 1
+                        for pos in area:
+                            dimSumTemp.remove(pos)
+
+                if dimCount == areaCount and len(dimSumTemp) > 0:
+                    command = StarBattleCommand(noStars=dimSumTemp)
+                    command.SetType("{0}M{1}-{2}".format(commandType, d1, d2))
+                    return command
+        return None
+
+    def TryPuzzleBreak(self, depth):
+        """
+        This algorythm trys to break the puzzle via brute force:
+
+        1) Get all unknown positions
+        2) Save the state of the current board
+        3) Pick a position and put a "Star" in it
+        4) Call NextSolution up to [depth] times. There can be 3 things that happen:
+        4a) The grid is broken --> Now we know for sure that this position can't be a star --> 5)
+        4b) The grid is solved --> We wanted to break the puzzle --> reset board from temp and 3)
+        4c) The grid is neither solved nor broken --> reset board from temp and 3)
+        5) reset board, return new command(pos = NoStar) + commands that prove the statement
+
+        :param depth: number of NextSolution steps the algorithm trys
+        :type depth: int
+        :return: command
+        :rtype: StarBattleCommand or None
+        """
+        unknownPositions = []
+        for r in range(self._dimension):
+            for c in range(self._dimension):
+                if self._board[r][c].Status() == StarBattleTileStates.UNKNOWN:
+                    unknownPositions.append((r, c))
+
         boardTemp, doublesTemp, triplesTemp = self.CopyBoard(self._board, self._doubles,
                                                              self._triples, self._dimension)
         breakCommand = None
@@ -300,24 +485,15 @@ class StarBattleSolver:
                                                                    triplesTemp, self._dimension)
         return breakCommand
 
-    def GetRow(self, r: int, flt: list):
-        return [(r, i) for i, tile in enumerate(self._board[r]) if tile.Status() in flt]
-
-    def GetColumn(self, c: int, flt: list):
-        column = []
-        for r in range(self._dimension):
-            if self._board[r][c].Status() in flt:
-                column.append((r, c))
-        return column
-
-    def GetArea(self, key, flt):
-        area = []
-        for pos in self._boardData[key]:
-            if self._board[pos[0]][pos[1]].Status() in flt:
-                area.append((pos[0], pos[1]))
-        return area
-
     def InterpretSolutions(self, solutions):
+        """
+        Interpret all possible solutions and return a command
+
+        :param solutions: all possible solutions
+        :type solutions: list(dict)
+        :return: command
+        :rtype: StarBattleCommand or None
+        """
         if len(solutions) == 0:
             return None
 
@@ -338,7 +514,44 @@ class StarBattleSolver:
 
         return None
 
+    def GetForcedSolutions(self, solutions, key, flt):
+        """
+        Find forced solutions in the possible solutions e.g. stars/noStars that are in all possible
+        solutions.
+
+        :param solutions: all possible solutions
+        :type solutions: dict
+        :param key: star/noStar
+        :type key: str
+        :param flt: tile filter
+        :type flt: list(StarBattleTileStates)
+        :return: positions of forced solutions
+        :rtype: list(tuple(int, int))
+        """
+        foundForced = []
+        filteredSolutions = [s[key] for s in solutions]
+        for pos in filteredSolutions[0]:
+            if self._board[pos[0]][pos[1]].Status() != flt:
+                for otherSolution in filteredSolutions[1:]:
+                    if pos not in otherSolution:
+                        break
+                else:
+                    foundForced.append(pos)
+        return foundForced
+
     def GetDoubles(self, solutions, key, flt):
+        """
+        Find doubles - two connected positions where one of them are in every possible solution.
+
+        :param solutions: all possible solutions
+        :type solutions: list(dict)
+        :param key: star/noStar
+        :type key: str
+        :param flt: tile filter
+        :type flt: list(StarBattleTileStates)
+        :return: positions of forced solutions
+        :rtype: list(tuple(int, int))
+        """
         countPositions = {}
         filteredSolutions = [s[key] for s in solutions]
         for solution in filteredSolutions:
@@ -364,6 +577,18 @@ class StarBattleSolver:
         return doublesChanged
 
     def GetTriples(self, solutions, key, flt):
+        """
+        Find triples - three connected positions where one of them are in every possible solution.
+
+        :param solutions: all possible solutions
+        :type solutions: list(dict)
+        :param key: star/noStar
+        :type key: str
+        :param flt: tile filter
+        :type flt: list(StarBattleTileStates)
+        :return: positions of forced solutions
+        :rtype: list(tuple(int, int))
+        """
         countPositions = {}
         filteredSolutions = [s[key] for s in solutions]
         for solution in filteredSolutions:
@@ -408,38 +633,16 @@ class StarBattleSolver:
 
         return triplesChanged
 
-    def GetForcedSolutions(self, solutions, key, flt):
-        foundForced = []
-        filteredSolutions = [s[key] for s in solutions]
-        for pos in filteredSolutions[0]:
-            if self._board[pos[0]][pos[1]].Status() != flt:
-                for otherSolution in filteredSolutions[1:]:
-                    if pos not in otherSolution:
-                        break
-                else:
-                    foundForced.append(pos)
-        return foundForced
-
-    def GetNoStarsFromForcedSolutions(self, forcedSolutions, noStarPositions, starCount):
-        filteredForcedSolutions = []
-        for forcedSolution in forcedSolutions:
-            for pos in forcedSolution:
-                if pos not in noStarPositions:
-                    break
-            else:
-                filteredForcedSolutions.append(forcedSolution.copy())
-
-        newFilteredPositions = []
-        if len(filteredForcedSolutions) + starCount == self._stars:
-            for pos in noStarPositions:
-                for forcedSolution in filteredForcedSolutions:
-                    if pos in forcedSolution:
-                        break
-                else:
-                    newFilteredPositions.append(pos)
-        return newFilteredPositions
-
     def GetPossibleSolutions(self, positions):
+        """
+        Compute every possible solution (stars, noStars) while considering the star battle rules.
+        Apply special logic by considering doubles and triples.
+
+        :param positions: list of positions that should be investigated
+        :type positions: list(tuple(int,int))
+        :return: list of possible solutions
+        :rtype: list(dict)
+        """
         stars = []
         filteredPositions = []
         for pos in positions:
@@ -471,8 +674,54 @@ class StarBattleSolver:
 
         return self._GetPossibleSolutionsRecursive(filteredPositions, stars)
 
+    def GetNoStarsFromForcedSolutions(self, forcedSolutions, unknownPositions, starCount):
+        """
+        Special logic by considering doubles and triples. These may force special constraints.
+
+        :param forcedSolutions: doubles/triples
+        :type forcedSolutions: list(list(int, int))
+        :param unknownPositions: positons without a star
+        :type unknownPositions: list(tuple(int, int))
+        :param starCount: number of stars in this area
+        :type starCount: int
+        :return: list of noStar postions
+        :rtype: list(tuple(int, int))
+        """
+        filteredForcedSolutions = []
+        for forcedSolution in forcedSolutions:
+            for pos in forcedSolution:
+                if pos not in unknownPositions:
+                    break
+            else:
+                filteredForcedSolutions.append(forcedSolution.copy())
+
+        newFilteredPositions = []
+        if len(filteredForcedSolutions) + starCount == self._stars:
+            for pos in unknownPositions:
+                for forcedSolution in filteredForcedSolutions:
+                    if pos in forcedSolution:
+                        break
+                else:
+                    newFilteredPositions.append(pos)
+        return newFilteredPositions
+
     def _GetPossibleSolutionsRecursive(self, filteredPositions, stars, noStars=None,
                                        solutions=None):
+        """
+        Recursive function. Compute every possible solution (stars, noStars) while considering the
+        star battle rules.
+
+        :param filteredPositions: list of positions that should be investigated
+        :type filteredPositions: list(tuple(int,int))
+        :param stars: list of star positions
+        :type stars: list(tuple(int,int))
+        :param noStars: list of noStar positions
+        :type noStars: list(tuple(int,int))
+        :param solutions: list of possible solutions (give to sub call)
+        :type solutions: list(dict)
+        :return: list of possible solutions
+        :rtype: list(dict)
+        """
         if noStars is None:
             noStars = []
         if solutions is None:
