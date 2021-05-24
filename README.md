@@ -4,9 +4,11 @@
 
 A small star battle solver with a rudimentary gui.
 
+![screenshot](./doc/screenshot.png)
+
 ## Manual
 
-the solver can be used for different StarBattle grid sizes and stars per row/column/area, but it 
+The solver can be used for different StarBattle grid sizes and stars per row/column/area, but it 
 is only tested with a 9x9 TwoStarBattle grid. The gui provides a 9x9 TwoStarBattle grid. There 
 are different buttons that can be used:
 
