@@ -1,99 +1,12 @@
-from enum import Enum
 import copy
+
+from solver.StarBattleCommands import StarBattleCommand, StarBattleCommandPuzzleBreak
+from solver.StarBattleTiles import StarBattleTile
+from solver.StarBattleEnums import StarBattleGridCodes, StarBattleTileStates
 
 
 class StarBattleSolverError(Exception):
     pass
-
-
-class StarBattleGridCodes(Enum):
-    OK = 0
-    # cell count is not dim * dim
-    INVALID_CELL_COUNT = 1
-    # a position is not inside the grid
-    INVALID_DIMENSION = 2
-    # the number of areas is not equal to the dim
-    INVALID_AREA_COUNT = 3
-    # the number of tiles aren't possible
-    INVALID_AREA_SIZE = 4
-    # there is at least one duplication in the positions
-    DUPLICATE_POSITION = 5
-    # a tile of one area is disconnected from the rest
-    DISCONNECTED_TILE = 6
-
-    # the grid is not solvable
-    UNSOLVABLE = 99
-
-
-class StarBattleTileStates(Enum):
-    UNKNOWN = 0
-    NO_STAR = 1
-    STAR = 2
-
-
-class StarBattleCommand:
-    def __init__(self, stars=None, noStars=None, doubles=None, triples=None):
-        self._stars = stars
-        self._noStars = noStars
-        self._doubles = doubles
-        self._triples = triples
-
-        if self._stars is None:
-            self._stars = []
-        if self._noStars is None:
-            self._noStars = []
-        if self._doubles is None:
-            self._doubles = []
-        if self._triples is None:
-            self._triples = []
-
-        self._type = None
-
-    def __str__(self):
-        return "[{0}] stars: {1} | noStars: {2} " \
-               "| doubles: {3} | triples: {4}".format(self._type, self._stars, self._noStars,
-                                                      self._doubles, self._triples)
-
-    def GetStars(self):
-        return self._stars
-
-    def GetNoStars(self):
-        return self._noStars
-
-    def GetDoubles(self):
-        return self._doubles
-
-    def GetTriples(self):
-        return self._triples
-
-    def SetType(self, t):
-        self._type = t
-
-
-class StarBattleCommandPuzzleBreak(StarBattleCommand):
-    def __init__(self, noStars, subCommands):
-        super(StarBattleCommandPuzzleBreak, self).__init__(noStars=noStars)
-        self._subCommands = subCommands
-
-    def __str__(self):
-        s = "[B] noStars: {0} because of puzzle break:\n".format(self._noStars)
-
-        i = 0
-        for c in self._subCommands:
-            s += "({0})--- {1}\n".format(i, str(c))
-            i += 1
-        return s
-
-
-class StarBattleTile:
-    def __init__(self):
-        self._status = StarBattleTileStates.UNKNOWN
-
-    def Status(self):
-        return self._status
-
-    def SetStatus(self, status):
-        self._status = status
 
 
 class StarBattleSolver:
@@ -149,6 +62,29 @@ class StarBattleSolver:
             return True
 
         return False
+
+    @staticmethod
+    def CopyBoard(board, doubles, triples, dimension):
+        newBoard = []
+        newDoubles = copy.deepcopy(doubles)
+        newTriples = copy.deepcopy(triples)
+
+        for r in range(dimension):
+            row = []
+            for c in range(dimension):
+                row.append(StarBattleTile())
+            newBoard.append(row)
+
+        for r in range(dimension):
+            for c in range(dimension):
+                if board[r][c].Status() == StarBattleTileStates.UNKNOWN:
+                    newBoard[r][c].SetStatus(StarBattleTileStates.UNKNOWN)
+                if board[r][c].Status() == StarBattleTileStates.STAR:
+                    newBoard[r][c].SetStatus(StarBattleTileStates.STAR)
+                if board[r][c].Status() == StarBattleTileStates.NO_STAR:
+                    newBoard[r][c].SetStatus(StarBattleTileStates.NO_STAR)
+
+        return newBoard, newDoubles, newTriples
 
     def __init__(self, boardData, dimension, stars=2, validateData=True):
         returnCode = StarBattleSolver.IsValidStarBattleGrid(boardData, dimension, stars)
@@ -323,12 +259,12 @@ class StarBattleSolver:
 
     def TryPuzzleBreak(self, unknownPositions, depth):
         boardTemp, doublesTemp, triplesTemp = self.CopyBoard(self._board, self._doubles,
-                                                             self._triples)
+                                                             self._triples, self._dimension)
         breakCommand = None
         for pos in unknownPositions:
             # reset board
             self._board, self._doubles, self._triples = self.CopyBoard(boardTemp, doublesTemp,
-                                                                       triplesTemp)
+                                                                       triplesTemp, self._dimension)
             isBroken = False
             newStar = [pos]
             newNoStars = []
@@ -360,30 +296,8 @@ class StarBattleSolver:
 
         # reset board
         self._board, self._doubles, self._triples = self.CopyBoard(boardTemp, doublesTemp,
-                                                                   triplesTemp)
+                                                                   triplesTemp, self._dimension)
         return breakCommand
-
-    def CopyBoard(self, board, doubles, triples):
-        newBoard = []
-        newDoubles = copy.deepcopy(doubles)
-        newTriples = copy.deepcopy(triples)
-
-        for r in range(self._dimension):
-            row = []
-            for c in range(self._dimension):
-                row.append(StarBattleTile())
-            newBoard.append(row)
-
-        for r in range(self._dimension):
-            for c in range(self._dimension):
-                if board[r][c].Status() == StarBattleTileStates.UNKNOWN:
-                    newBoard[r][c].SetStatus(StarBattleTileStates.UNKNOWN)
-                if board[r][c].Status() == StarBattleTileStates.STAR:
-                    newBoard[r][c].SetStatus(StarBattleTileStates.STAR)
-                if board[r][c].Status() == StarBattleTileStates.NO_STAR:
-                    newBoard[r][c].SetStatus(StarBattleTileStates.NO_STAR)
-
-        return newBoard, newDoubles, newTriples
 
     def GetRow(self, r: int, flt: list):
         return [(r, i) for i, tile in enumerate(self._board[r]) if tile.Status() in flt]
@@ -596,4 +510,3 @@ class StarBattleSolver:
                                                 solutions)
 
         return solutions
-
